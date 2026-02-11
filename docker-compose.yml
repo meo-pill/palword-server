@@ -1,0 +1,56 @@
+# ARK: Survival Evolved Server Configuration
+# This compose file sets up a robust ARK server with automated monitoring and backup
+services:
+  palword:
+    image: meopill/palword-server:latest
+    container_name: palword-server
+
+    stop_grace_period: 10m  # Grace period for container shutdown (allows proper ARK server shutdown)
+
+    hostname: palword-server  # Set container hostname
+    user: "3009:5000"      # Run as palword (UID 3009) with game-server group (GID 5000)
+
+    # Environment variables for configuration flexibility
+    environment:
+      - TZ=Europe/Paris          # Fuseau horaire (remplace la valeur du Dockerfile)
+
+    # Persistent volume mounts
+    volumes:
+      - /mnt/donnee/conf/palword/config:/PalwordConfig                            # Configuration files
+      - /mnt/donnee/conf/palword/saves:/home/palword/PalwordGame/Pal/Saved        # Game saves and world data
+
+    # Port mappings for palword server services
+    ports:
+      # Game connection ports (UDP/TCP)
+      - "8211:8211/udp"   # Palword game ports (UDP)
+      - "8211:8211/tcp"   # Palword game ports (TCP)
+      # Steam query ports
+      - "27015:27015/udp"  # Steam query ports (UDP)
+      - "27015:27015/tcp"  # Steam query ports (TCP)
+      # SSH access port
+      - "7722:22/tcp"                  # SSH access (mapped to host port 7722)
+    
+    restart: unless-stopped
+
+    # Health check configuration for monitoring server status
+    healthcheck:
+      test: /home/palword/healthcheck.sh      # Health check script
+      interval: 1m                    # Check every minute
+      timeout: 30s                    # 30-second timeout per check
+      retries: 3                      # Allow 3 consecutive failures
+      start_period: 5m                # Grace period during startup (5 minutes)
+    
+    # Resource limits and reservations
+    deploy:
+      replicas: 1                     # Single instance
+      resources:
+        limits:
+          cpus: '8'                   # Maximum 8 CPU cores
+          memory: 32G                 # Maximum 32GB RAM
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

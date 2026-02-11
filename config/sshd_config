@@ -1,0 +1,21 @@
+# SSH Server Configuration for ARK Container
+# Secure configuration for remote administration access
+# This file configures the OpenSSH daemon running inside the Docker container
+
+# Disable password authentication - only SSH keys allowed for security
+PasswordAuthentication no
+
+# SSH service port - standard SSH port
+Port 22
+
+# Disable challenge-response authentication for enhanced security
+ChallengeResponseAuthentication no
+
+# Disable PAM (Pluggable Authentication Modules) for simplified auth
+UsePAM no
+
+# Allow user login via SSH keys only (required for container administration)
+PermitRootLogin no
+
+# Path to authorized SSH public keys for palword user access
+AuthorizedKeysFile /home/palword/.ssh/authorized_keys
