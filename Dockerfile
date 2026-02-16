@@ -122,8 +122,8 @@ RUN chmod +x /home/palword/launch.sh \
     && chmod 644 /etc/ssh/sshd_config
 
 # Add cron job to restart the server daily at 14:00
-RUN echo "0 14 * * * /home/palword/launch.sh restart" | crontab -u palword - \
-    && crontab -l -u palword
+RUN (echo "APPLOCATION=/home/palword/PalwordGame" && echo "0 14 * * * /home/palword/launch.sh restart") | crontab -u palword - \
+    && crontab -l -u palword;
 
 # Configure shell environment with useful aliases and environment variables
 # Create convenient aliases for navigation and set persistent environment variables

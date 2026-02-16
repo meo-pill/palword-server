@@ -1,4 +1,5 @@
 #!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Palword Server Management Script
 # Supports starting, stopping, configuration, and monitoring of Palword servers
@@ -145,7 +146,7 @@ case "$1" in
         launch_server
     ;;
     stop)
-        shutdown_servers
+        shutdown_server
     ;;
     restart)
         shutdown_server
