@@ -4,13 +4,6 @@
 # Handles container initialization, SSH setup, backup management, and ARK server startup
 # Provides graceful shutdown handling and automated backup services
 
-# Validate critical environment variables at startup
-# Ensure backup configuration is valid to prevent runtime errors
-if [ -z "$MAX_BACKUPS" ] || [ "$MAX_BACKUPS" -lt 1 ]; then
-    echo "ERROR: MAX_BACKUPS must be >= 1"
-    exit 1
-fi
-
 # Validate save directory exists (should be mounted volume)
 if [ ! -d "$SAVE_DIR" ]; then
     echo "ERROR: SAVE_DIR '$SAVE_DIR' does not exist"
@@ -41,7 +34,41 @@ shutdown() {
 # Initial container setup and SSH configuration
 # Manages SSH host keys and authorized_keys for secure remote access
 # Ensures persistent SSH configuration across container restarts
+# ADDED: Handle APPLOCATION override from docker-compose
 setup () {
+    # Handle APPLOCATION override by creating necessary directories and files
+    if [ "${APPLOCATION}" != "/home/palword/PalwordGame" ]; then
+        echo "APPLOCATION override detected: ${APPLOCATION}"
+        echo "Setting up directories and configuration for custom location..."
+        
+        # Create the custom application directory if it doesn't exist
+        mkdir -p "${APPLOCATION}"
+        
+        # Create symlink or copy server files if needed
+        if [ ! -f "${APPLOCATION}/PalServer.sh" ]; then
+            # If the default installation exists, create a symlink
+            if [ -d "/home/palword/PalwordGame" ] && [ -f "/home/palword/PalwordGame/PalServer.sh" ]; then
+                echo "Creating symlink from default installation to custom location..."
+                ln -sf /home/palword/PalwordGame/* "${APPLOCATION}/"
+            else
+                echo "WARNING: No Palworld server installation found. You may need to install it manually."
+            fi
+        fi
+        
+        # Copy configuration file to the new location if it exists in default location
+        if [ -f "/home/palword/PalwordGame/DefaultPalWorldSettings.ini" ] && [ ! -f "${APPLOCATION}/DefaultPalWorldSettings.ini" ]; then
+            cp /home/palword/PalwordGame/DefaultPalWorldSettings.ini "${APPLOCATION}/DefaultPalWorldSettings.ini"
+            chown palword:game-server "${APPLOCATION}/DefaultPalWorldSettings.ini"
+        fi
+        
+        # Update SAVE_DIR to match the new APPLOCATION
+        export SAVE_DIR="${APPLOCATION}/Pal/Saved"
+        
+        # Ensure the save directory exists
+        mkdir -p "${SAVE_DIR}"
+        chown -R palword:game-server "${APPLOCATION}" "${SAVE_DIR}"
+    fi
+    
     # Create SSH configuration directory in persistent volume if it doesn't exist
     if [ ! -d "$CONFIG_DIR/ssh" ]; then
         echo "Creating SSH configuration directory..."

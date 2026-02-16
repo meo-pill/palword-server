@@ -24,9 +24,6 @@ services:
       # Game connection ports (UDP/TCP)
       - "8211:8211/udp"   # Palword game ports (UDP)
       - "8211:8211/tcp"   # Palword game ports (TCP)
-      # Steam query ports
-      - "27015:27015/udp"  # Steam query ports (UDP)
-      - "27015:27015/tcp"  # Steam query ports (TCP)
       # SSH access port
       - "7722:22/tcp"                  # SSH access (mapped to host port 7722)
     

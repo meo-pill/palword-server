@@ -9,7 +9,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ########################################################################################
 
 # Palword server installation paths and identifiers
-Binaries="$APPLOCATION"
+Binaries="${APPLOCATION:-/home/palword/PalwordGame}"
 ScreenName="Palworld-server" # Base name for screen sessions running Palword servers
 
 ########################################################################################
@@ -135,6 +135,13 @@ monitor() {
     tput cnorm
 }
 
+check_executable() {
+    if [ ! -x "$Binaries/PalServer.sh" ]; then
+        echo "ERROR: PalServer.sh is not executable or not found at $Binaries/PalServer.sh"
+        exit 1
+    fi
+}
+
 ########################################################################################
 # Main Script Logic - Command Line Interface
 ########################################################################################
@@ -143,12 +150,14 @@ monitor() {
 # Provides a comprehensive interface for ARK cluster management
 case "$1" in
     start)
+        check_executable
         launch_server
     ;;
     stop)
         shutdown_server
     ;;
     restart)
+        check_executable
         shutdown_server
         launch_server
     ;;
