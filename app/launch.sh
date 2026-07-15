@@ -21,7 +21,7 @@ launch_server() {
     echo "Starting Server..."
     echo
 
-    cmd="${Binaries}/PalServer.sh -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS -NumberOfWorkerThreadsServer=8"
+    cmd="${Binaries}/PalServer.sh -publiclobby -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS -NumberOfWorkerThreadsServer=8"
     screen -dmS "$ScreenName" $cmd 
     echo "Cluster started."
 
