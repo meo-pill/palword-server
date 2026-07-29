@@ -66,18 +66,12 @@ RUN mkdir -p /var/run/sshd
 # Create user for proper file permissions BEFORE steamcmd
 # game-server (GID 5000): Main group for Palword server files
 # developer (GID 4000): Development access group
-RUN groupadd -g 5000 game-server \
+RUN set -o pipefail;\
+    groupadd -g -l 5000 game-server \
     && groupadd -g 4000 developer \
     && useradd -u 3009 -g game-server -G developer -m -s /bin/bash palword \
     && echo "palword:password" | chpasswd \
-    && apt-get update && apt-get install -y sudo \
-    && usermod -aG sudo palword \
     && echo "palword ALL=(ALL) NOPASSWD: /etc/init.d/ssh" >> /etc/sudoers.d/palword \
-    && chmod 0440 /etc/sudoers.d/palword \
-    && apt-get autoremove -y \
-    && apt-get autoclean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /var/cache/apt/* \
     && mkdir -p ${APPLOCATION} \
     && chown -R palword:game-server /home/palword
 
@@ -122,14 +116,13 @@ RUN chmod +x /home/palword/launch.sh \
     && chmod 644 /etc/ssh/sshd_config
 
 # Add cron job to restart the server daily at 14:00
-RUN (echo "0 14 * * * /home/palword/launch.sh restart") | crontab -u palword - \
+RUN set -o pipefail;\
+    (echo "0 14 * * * /home/palword/launch.sh restart") | crontab -u palword - \
     && crontab -l -u palword;
 
 # Configure shell environment with useful aliases and environment variables
 # Create convenient aliases for navigation and set persistent environment variables
-RUN echo "alias conf='cd ${CONFIG_DIR}'" >> /home/palword/.bashrc \
-    && echo 'alias save="cd ${SAVE_DIR}"' >> /home/palword/.bashrc \
-    && echo 'export CONFIG_DIR=/PalwordConfig' >> /home/palword/.bashrc \
+RUN echo 'export CONFIG_DIR=/PalwordConfig' >> /home/palword/.bashrc \
     && echo 'export APPLOCATION=/home/palword/PalwordGame' >> /home/palword/.bashrc \
     && echo 'export SAVE_DIR=${APPLOCATION}/Pal/Saved' >> /home/palword/.bashrc \
     && echo 'PATH="/home/palword/PalwordGame:${PATH}"' >> /home/palword/.bashrc \
