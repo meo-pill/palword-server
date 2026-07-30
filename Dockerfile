@@ -34,7 +34,6 @@ RUN dpkg --add-architecture i386 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         lib32gcc-s1=16-20260322-1ubuntu1 \
-        tzdata=2026c-0ubuntu0.26.04.1 \
     && apt-get autoremove -y \
     && apt-get autoclean \
     && rm -rf /var/lib/apt/lists/* \
