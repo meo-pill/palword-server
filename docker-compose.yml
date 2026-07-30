@@ -1,23 +1,32 @@
-# ARK: Survival Evolved Server Configuration
-# This compose file sets up a robust ARK server with automated monitoring and backup
+# Palworld Dedicated Server - Configuration Docker Compose
 services:
-  palword:
-    image: meopill/palword-server:latest
-    container_name: palword-server
+  palworld:
+    image: meopill/palworld-server:latest
+    container_name: palworld-server
 
-    stop_grace_period: 10m  # Grace period for container shutdown (allows proper ARK server shutdown)
+    stop_grace_period: 10m  # Délai d'arrêt propre du serveur Palworld
 
-    hostname: palword-server  # Set container hostname
-    user: "3009:5000"      # Run as palword (UID 3009) with game-server group (GID 5000)
+    hostname: palworld-server  # Set container hostname
+    user: "3009:5000"      # Run as palworld (UID 3009) with game-server group (GID 5000)
 
-    # Environment variables for configuration flexibility
     environment:
-      - TZ=Europe/Paris          # Fuseau horaire (remplace la valeur du Dockerfile)
+      - TZ=Europe/Paris
+      # --- Identité du serveur ---
+      - SERVER_NAME=Mon Serveur Palworld
+      - SERVER_PASSWORD=ChangeME      # exemple — à remplacer
+      - ADMIN_PASSWORD=StrongChangeME # exemple — à remplacer
+      # --- Réseau ---
+      - SERVER_PORT=8211
+      - PUBLIC_IP=                    # Vide = détection automatique
+      # --- Joueurs ---
+      - PLAYERS=16
+      # --- Visibilité ---
+      - COMMUNITY=false               # true = visible dans la liste communautaire
 
     # Persistent volume mounts
     volumes:
-      - /mnt/donnee/conf/palword/config:/PalwordConfig                            # Configuration files
-      - /mnt/donnee/conf/palword/saves:/home/palword/PalwordGame/Pal/Saved        # Game saves and world data
+      - E:\temp torrent\Nouveau_conf:/PalwordConfig                            # Configuration files
+      - E:\temp torrent\Nouveau_save:/home/palword/PalwordGame/Pal/Saved        # Game saves and world data
 
     # Port mappings for palword server services
     ports:
@@ -26,8 +35,6 @@ services:
       - "8211:8211/tcp"   # Palword game ports (TCP)
       # Steam query port (UDP)
       #- "27015:27015/udp" # Steam query port (UDP)
-      # SSH access port
-      - "7722:22/tcp"                  # SSH access (mapped to host port 7722)
     
     restart: unless-stopped
 
@@ -45,7 +52,7 @@ services:
       resources:
         limits:
           cpus: '8'                   # Maximum 8 CPU cores
-          memory: 32G                 # Maximum 32GB RAM
+          memory: 16G                 # Maximum 16GB RAM
 
     # Logging configuration
     logging:

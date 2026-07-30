@@ -1,22 +1,12 @@
 #!/bin/bash
-# Palword Server Health Check Script
-# Validates that all configured ARK server instances are running properly
-# Checks both screen sessions and network port listening status
+# Palworld Server Health Check
+# Vérifie que le processus serveur est actif
 
-# Configuration variables
-healthy=true                     # Overall health status flag       
-base_query_port=27015           # Base Steam query port (standard Steam port range)
-
-if ! netstat -ln | grep -q ":$base_query_port "; then
-    healthy=false
-fi
-
-# Evaluate overall health status and return appropriate exit code
-if [ "$healthy" = true ]; then
-    echo "palword server is healthy"
-    exit 0  # Success - container is healthy
+if pgrep -f "PalServer" > /dev/null 2>&1; then
+    echo "Palworld server is healthy"
+    exit 0
 else
-    echo "palword server is unhealthy"
-    exit 1  # Failure - container is unhealthy
+    echo "Palworld server is unhealthy"
+    exit 1
 fi
 

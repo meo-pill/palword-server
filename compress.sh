@@ -11,10 +11,8 @@ echo "Creating tar archive for Palword Docker build..."
 REQUIRED_FILES=(
     "Dockerfile"                    # Main Docker image definition
     "docker-compose.yml"            # Docker Compose configuration
-    "app"                           # Application scripts directory
     "entrypoint.sh"                 # Container startup script
     "healthcheck.sh"                # Health monitoring script
-    "config"                        # Configuration files directory
 )
 
 echo "Validating required files presence..."

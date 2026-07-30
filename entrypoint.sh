@@ -1,131 +1,66 @@
 #!/bin/bash
+# Palworld Server Container Entrypoint
+# Le serveur tourne en foreground comme processus principal du conteneur.
+# Utilisez 'docker logs' pour voir les logs, 'docker exec' pour accéder au conteneur.
 
-# ARK Server Container Entrypoint Script
-# Handles container initialization, SSH setup, backup management, and ARK server startup
-# Provides graceful shutdown handling and automated backup services
+# Vérifier et créer les répertoires nécessaires
+mkdir -p "$SAVE_DIR" "$CONFIG_DIR"
 
-# Validate save directory exists (should be mounted volume)
-if [ ! -d "$SAVE_DIR" ]; then
-    echo "ERROR: SAVE_DIR '$SAVE_DIR' does not exist"
+# Vérifier que le binaire serveur existe et est exécutable
+if [ ! -x "${APPLOCATION}/PalServer.sh" ]; then
+    echo "ERROR: PalServer.sh introuvable ou non exécutable : ${APPLOCATION}/PalServer.sh"
     exit 1
 fi
 
-# Container shutdown handler function
-# Provides graceful shutdown sequence for ARK servers and SSH service
-# Called when container receives SIGTERM or SIGINT signals
-shutdown() {
-    echo "Container shutdown initiated..."
-    
-    # Notify connected SSH users about impending shutdown
-    wall "WARNING: Server will shutdown in 30 seconds. Please disconnect."
-    
-    # Gracefully stop ARK servers (allows proper save of game data)
-    echo "Stopping ARK servers..."
-    launch.sh stop
-    
-    # Stop SSH service last to allow monitoring until the end
-    echo "Stopping SSH service..."
-    sudo /etc/init.d/ssh stop
-    
-    echo "Shutdown completed."
+# Si il n'existe pas de fichier de configuration, copier le fichier par défaut
+if [ ! -f "${CONFIG_DIR}/PalWorldSettings.ini" ]; then
+    echo "Fichier de configuration introuvable, copie du fichier par défaut..."
+    cp "${APPLOCATION}/DefaultPalWorldSettings.ini" "${CONFIG_DIR}/PalWorldSettings.ini"
+    cp "${APPLOCATION}/DefaultPalWorldSettings.ini" "${CONFIG_DIR}/DefaultPalWorldSettings.ini"
+fi
+
+# On écrase le ficher de configuration de la sauvegarde avec celui du dossier de configuration
+if [ -f "${CONFIG_DIR}/PalWorldSettings.ini" ]; then
+    echo "Copie du fichier de configuration dans le dossier de sauvegarde..."
+    cp "${CONFIG_DIR}/PalWorldSettings.ini" "${SAVE_DIR}/Config/LinuxServer/PalWorldSettings.ini"
+fi
+
+# Transférer le signal SIGTERM de Docker vers le processus serveur pour un arrêt propre
+_shutdown() {
+    echo "Signal d'arrêt reçu, arrêt du serveur Palworld..."
+    kill -TERM "$SERVER_PID" 2>/dev/null
+    wait "$SERVER_PID" 2>/dev/null
+    echo "Serveur arrêté."
     exit 0
 }
+trap _shutdown SIGTERM SIGINT
 
-# Initial container setup and SSH configuration
-# Manages SSH host keys and authorized_keys for secure remote access
-# Ensures persistent SSH configuration across container restarts
-# ADDED: Handle APPLOCATION override from docker-compose
-setup () {
-    # Handle APPLOCATION override by creating necessary directories and files
-    if [ "${APPLOCATION}" != "/home/palword/PalwordGame" ]; then
-        echo "APPLOCATION override detected: ${APPLOCATION}"
-        echo "Setting up directories and configuration for custom location..."
-        
-        # Create the custom application directory if it doesn't exist
-        mkdir -p "${APPLOCATION}"
-        
-        # Create symlink or copy server files if needed
-        if [ ! -f "${APPLOCATION}/PalServer.sh" ]; then
-            # If the default installation exists, create a symlink
-            if [ -d "/home/palword/PalwordGame" ] && [ -f "/home/palword/PalwordGame/PalServer.sh" ]; then
-                echo "Creating symlink from default installation to custom location..."
-                ln -sf /home/palword/PalwordGame/* "${APPLOCATION}/"
-            else
-                echo "WARNING: No Palworld server installation found. You may need to install it manually."
-            fi
-        fi
-        
-        # Copy configuration file to the new location if it exists in default location
-        if [ -f "/home/palword/PalwordGame/DefaultPalWorldSettings.ini" ] && [ ! -f "${APPLOCATION}/DefaultPalWorldSettings.ini" ]; then
-            cp /home/palword/PalwordGame/DefaultPalWorldSettings.ini "${APPLOCATION}/DefaultPalWorldSettings.ini"
-            chown palword:game-server "${APPLOCATION}/DefaultPalWorldSettings.ini"
-        fi
-        
-        # Update SAVE_DIR to match the new APPLOCATION
-        export SAVE_DIR="${APPLOCATION}/Pal/Saved"
-        
-        # Ensure the save directory exists
-        mkdir -p "${SAVE_DIR}"
-        chown -R palword:game-server "${APPLOCATION}" "${SAVE_DIR}"
-    fi
-    
-    # Create SSH configuration directory in persistent volume if it doesn't exist
-    if [ ! -d "$CONFIG_DIR/ssh" ]; then
-        echo "Creating SSH configuration directory..."
-        mkdir -p "$CONFIG_DIR/ssh"
-    fi
-    
-    # Generate SSH host keys if not present in persistent storage
-    # This ensures SSH host identity is maintained across container restarts
-    if [ -z "$(ls -A "$CONFIG_DIR/ssh")" ]; then
-        echo "Generating SSH host keys..."
-        ssh-keygen -A
-        cp /etc/ssh/ssh_host_*_key.pub "$CONFIG_DIR/ssh/"
-        cp /etc/ssh/ssh_host_*_key "$CONFIG_DIR/ssh/"
-        echo "SSH host keys generated and copied to persistent volume"
-    else
-        echo "SSH host keys already present in persistent volume"
-        # Copy existing SSH keys from persistent storage to container
-        cp "$CONFIG_DIR"/ssh/ssh_host_*_key /etc/ssh/
-        cp "$CONFIG_DIR"/ssh/ssh_host_*_key.pub /etc/ssh/
-        echo "SSH host keys loaded from persistent volume"
-    fi
+echo "Démarrage du serveur dédié Palworld..."
+echo "  Config : $CONFIG_DIR"
+echo "  Saves  : $SAVE_DIR"
+echo "  App    : $APPLOCATION"
+echo "  Nom    : ${SERVER_NAME}"
+echo "  Port   : ${SERVER_PORT}"
+echo "  Joueurs: ${PLAYERS}"
 
-    # Configure SSH authorized keys for palword user access
-    echo "Configuring SSH service..."
-    mkdir -p $HOME/.ssh
-    chmod 700 $HOME/.ssh
-    touch "$CONFIG_DIR/authorized_keys"
-    cp "$CONFIG_DIR/authorized_keys" $HOME/.ssh/authorized_keys
-    chmod 600 $HOME/.ssh/authorized_keys    # Secure permissions for private key file
-    chown palword:game-server $HOME/.ssh/authorized_keys
-    echo "SSH service configured"
-}
+# Construire la commande de lancement à partir des variables d'environnement
+LAUNCH_ARGS=(
+    "-port=${SERVER_PORT}"
+    "-players=${PLAYERS}"
+    "-NumberOfWorkerThreadsServer=8"
+)
 
-# Register signal handlers for graceful container shutdown
-trap shutdown SIGTERM SIGINT
+[ -n "$SERVER_NAME" ]     && LAUNCH_ARGS+=("-ServerName=${SERVER_NAME}")
+[ -n "$SERVER_PASSWORD" ] && LAUNCH_ARGS+=("-ServerPassword=${SERVER_PASSWORD}")
+[ -n "$ADMIN_PASSWORD" ]  && LAUNCH_ARGS+=("-AdminPassword=${ADMIN_PASSWORD}")
+[ -n "$PUBLIC_IP" ]       && LAUNCH_ARGS+=("-PublicIP=${PUBLIC_IP}")
+[ "$COMMUNITY" = "true" ] && LAUNCH_ARGS+=("-publiclobby")
 
-# Execute initial setup procedures
-setup
+# Lancer le serveur — les logs vont directement vers Docker (stdout/stderr)
+"${APPLOCATION}/PalServer.sh" "${LAUNCH_ARGS[@]}" &
 
-# Start SSH service for remote administration access
-sudo /etc/init.d/ssh start
-echo "SSH service started"
+SERVER_PID=$!
+echo "Serveur démarré (PID $SERVER_PID)"
 
-# Start cron service for scheduled tasks
-sudo service cron start
-echo "Cron service started"
-
-# Configure directory permissions for game-server group access
-echo "Setting up backup and configuration directory permissions..."
-chmod -R g+rw "$SAVE_DIR" "$CONFIG_DIR"
-
-# Launch ARK server cluster in automated mode
-echo "Starting ARK servers..."
-launch.sh auto
-
-# Keep container running and wait for signals
-# Uses tail to maintain container lifecycle while allowing signal handling
-echo "Servers started, container operational"
-tail -f /dev/null &
-wait $!
+# Attendre la fin du processus serveur (maintient le conteneur en vie)
+wait $SERVER_PID
