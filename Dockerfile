@@ -76,9 +76,6 @@ RUN mkdir -p ${CONFIG_DIR} ${SAVE_DIR} \
     && chown -R palworld:game-server ${CONFIG_DIR} ${SAVE_DIR} \
     && chmod -R 775 ${CONFIG_DIR}
 
-# Copy default Palworld configuration file to installation root
-COPY --chown=palworld:game-server ./config/DefaultPalWorldSettings.ini ${APPLOCATION}/DefaultPalWorldSettings.ini
-
 # Application scripts: server management, health monitoring, and startup
 COPY --chown=palworld:game-server ./entrypoint.sh ./healthcheck.sh /home/palworld/
 
