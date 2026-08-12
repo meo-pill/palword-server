@@ -25,8 +25,8 @@ services:
 
     # Persistent volume mounts
     volumes:
-      - E:\temp torrent\Nouveau_conf:/PalwordConfig                            # Configuration files
-      - E:\temp torrent\Nouveau_save:/home/palword/PalwordGame/Pal/Saved        # Game saves and world data
+      - E:\temp torrent\Nouveau_conf:/PalworldConfig                            # Configuration files
+      - E:\temp torrent\Nouveau_save:/home/palworld/PalworldGame/Pal/Saved        # Game saves and world data
 
     # Port mappings for palword server services
     ports:
@@ -40,7 +40,7 @@ services:
 
     # Health check configuration for monitoring server status
     healthcheck:
-      test: /home/palword/healthcheck.sh      # Health check script
+      test: /home/palworld/healthcheck.sh      # Health check script
       interval: 1m                    # Check every minute
       timeout: 30s                    # 30-second timeout per check
       retries: 3                      # Allow 3 consecutive failures
