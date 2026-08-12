@@ -26,7 +26,7 @@ services:
     # Persistent volume mounts
     volumes:
       - E:\temp torrent\Nouveau_conf:/PalworldConfig                            # Configuration files
-      - E:\temp torrent\Nouveau_save:/home/palworld/PalworldGame/Pal/Saved        # Game saves and world data
+      - E:\temp torrent\Nouveau_save:/home/palworld/palworldGame/Pal/Saved        # Game saves and world data
 
     # Port mappings for palword server services
     ports:
